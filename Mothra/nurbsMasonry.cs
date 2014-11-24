@@ -15,6 +15,10 @@ namespace mikity.ghComponents
 {
     public partial class Mothra4 : Grasshopper.Kernel.GH_Component
     {
+        public Func<double, double, double, double, double> quadFunc = (xi, xj, yi, yj) => { return Math.Sqrt(((xj - xi) * (xj - xi)) + ((yj - yi) * (yj - yi)) + 1d); };
+        public double[] globalCoeff = null;
+        public Func<double,double,double>globalFunc=null;
+        public List<Rhino.Geometry.Point3d> targetSrf = new List<Point3d>();
         public void tieBranch2(branch branch, leaf leaf)
         {
             int T0 = 0, T1 = 0;
@@ -261,6 +265,7 @@ namespace mikity.ghComponents
         List<leaf> listLeaf;
         List<branch> listBranch;
         List<node> listNode;
+        public List<Point3d> listPnt;
         List<Point3d> a;
         List<Point3d> a2;
         List<Line> crossCyan;
@@ -291,6 +296,7 @@ namespace mikity.ghComponents
             pManager.AddCurveParameter("listCurve", "lstCrv", "list of curves", Grasshopper.Kernel.GH_ParamAccess.list);
             pManager.AddTextParameter("listType", "lstSrfType", "list of types of surfaces", Grasshopper.Kernel.GH_ParamAccess.list);
             pManager.AddTextParameter("listType", "lstCrvType", "list of types of edge curves", Grasshopper.Kernel.GH_ParamAccess.list);
+            pManager.AddPointParameter("pnts", "lstPnts", "list of points to compose target surface", Grasshopper.Kernel.GH_ParamAccess.list);
         }
         protected override void RegisterOutputParams(Grasshopper.Kernel.GH_Component.GH_OutputParamManager pManager)
         {
@@ -504,7 +510,10 @@ namespace mikity.ghComponents
                 }
             }
             //call mosek
-            mosek1(listLeaf, listBranch, listSlice,/*listNode, */myControlBox.objective);
+            if(listPnt.Count>0)
+                mosek1(listLeaf, listBranch, listSlice,true);
+            else
+                mosek1(listLeaf, listBranch, listSlice, false);
             hodgeStar(listLeaf, listBranch, listNode, myControlBox.coeff);
             ready = true;
             this.ExpirePreview(true);
@@ -560,7 +569,7 @@ namespace mikity.ghComponents
             init();
             _listSrf = new List<Surface>();
             _listCrv = new List<Curve>();
-            var _listPnt = new List<Point3d>();
+            listPnt = new List<Point3d>();
             List<string> srfTypes = new List<string>();
             List<string> crvTypes = new List<string>();
             List<string> pntHeights = new List<string>();
@@ -568,6 +577,7 @@ namespace mikity.ghComponents
             if (!DA.GetDataList(1, _listCrv)) { return; }
             if (!DA.GetDataList(2, srfTypes)) { return; }
             if (!DA.GetDataList(3, crvTypes)) { return; }
+            if (!DA.GetDataList(4, listPnt)) { listPnt.Clear(); }
 
             if (_listSrf.Count != srfTypes.Count) { AddRuntimeMessage(Grasshopper.Kernel.GH_RuntimeMessageLevel.Error, "need types for surfaces"); return; }
             if (_listCrv.Count != crvTypes.Count) { AddRuntimeMessage(Grasshopper.Kernel.GH_RuntimeMessageLevel.Error, "need types for curves"); return; }
@@ -620,7 +630,8 @@ namespace mikity.ghComponents
                     {
                         listSlice[key] = new slice();
                         branch.slice = listSlice[key];
-                        branch.slice.sliceType = slice.type.fx;
+                        branch.slice.sliceType = slice.type.fr;
+                        /*
                         var slider = myControlBox.addSliderRot(0, 1, 100, 40, (flag) => { if (flag) { branch.slice.sliceType = slice.type.fx; } else { branch.slice.sliceType = slice.type.fr; } });
                         slider.Converter = (val, sign) =>
                         {
@@ -639,7 +650,7 @@ namespace mikity.ghComponents
                             branch.slice.update(plnew);
                             this.ExpirePreview(true);
                             return theta;
-                        };
+                        };*/
                     }
                 }else if(crvTypes[i].StartsWith("fix"))
                 {
@@ -789,6 +800,53 @@ namespace mikity.ghComponents
                         return;
                 }
 
+            }
+            //multiqudric surface
+            var A=new Rhino.Geometry.Matrix(listPnt.Count,listPnt.Count);
+            var z=new Rhino.Geometry.Matrix(listPnt.Count,1);
+            for(int i=0;i<listPnt.Count;i++)
+            {
+                for(int j=0;j<listPnt.Count;j++)
+                {
+                    var pi=listPnt[i];
+                    var pj=listPnt[j];
+                    A[i,j]=quadFunc(pi.X,pj.X,pi.Y,pj.Y);
+                    z[i,0]=pi.Z;
+                }
+            }
+            A.Invert(0.0);  //this parameter should be 0.0
+            var c=A*z;
+            globalCoeff=new double[listPnt.Count];
+            for(int i=0;i<listPnt.Count;i++)
+            {
+                globalCoeff[i]=c[i,0];
+            }
+            targetSrf=new List<Point3d>();
+            globalFunc=(xi,yi)=>{
+                double Z=0;
+                for(int j=0;j<listPnt.Count;j++)
+                {
+                    Z=Z+globalCoeff[j]*quadFunc(xi,listPnt[j].X,yi,listPnt[j].Y);
+                }
+                return Z;
+                };
+            foreach (var leaf in listLeaf)
+            {
+                var domU = leaf.domU;
+                var domV = leaf.domV;
+                for (double i = 0; i <= 1.0; i += 0.05)
+                {
+                    for (double j = 0; j < 1.0; j += 0.05)
+                    {
+                        double u = domU[0] + i * (domU[1] - domU[0]);
+                        double v = domV[0] + j * (domV[1] - domV[0]);
+                        Rhino.Geometry.Point3d P;
+                        Rhino.Geometry.Vector3d[] V;
+                        leaf.srf.Evaluate(u, v, 0, out P, out V);
+                        var newP = new Rhino.Geometry.Point3d(P.X, P.Y, globalFunc(P.X, P.Y));
+                        targetSrf.Add(newP);
+                    }
+                }
             }
         }
     }

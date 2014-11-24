@@ -17,6 +17,11 @@ namespace mikity.ghComponents
             {
                 return;
             }
+            //targetSrf
+            if (listPnt != null)
+            {
+                args.Display.DrawPoints(targetSrf, Rhino.Display.PointStyle.Simple, 1, System.Drawing.Color.White);
+            }
             //eigenvectors
             if (crossCyan != null)
             {

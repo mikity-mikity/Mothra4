@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>mikity.ghComponents</RootNamespace>
-    <AssemblyName>Mothra</AssemblyName>
+    <AssemblyName>Mothra4</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -195,14 +195,14 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>Copy "$(TargetDir)Mothra.dll" "$(TargetDir)merge\Mothra.gha"
+    <PostBuildEvent>Copy "$(TargetDir)Mothra4.dll" "$(TargetDir)merge\Mothra4.gha"
 Copy "$(TargetDir)Minilla3D.dll" "$(TargetDir)merge\"
 Copy "$(TargetDir)MyMath.dll" "$(TargetDir)merge\"
 Copy "$(TargetDir)Mesher.dll" "$(TargetDir)merge\"
 Copy "$(TargetDir)MothraUI.dll" "$(TargetDir)merge\"
 Copy "$(TargetDir)mosek*.*" "$(TargetDir)merge\"
 
-Copy  "$(TargetDir)merge\Mothra.gha"  "c:\users\$(Username)\AppData\Roaming\Grasshopper\Libraries\
+Copy  "$(TargetDir)merge\Mothra4.gha"  "c:\users\$(Username)\AppData\Roaming\Grasshopper\Libraries\
 Copy  "$(TargetDir)merge\*.dll"  "c:\users\$(Username)\AppData\Roaming\Grasshopper\Libraries\
 </PostBuildEvent>
   </PropertyGroup>

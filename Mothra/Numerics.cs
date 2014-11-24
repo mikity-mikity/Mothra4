@@ -586,7 +586,7 @@ namespace mikity.ghComponents
                         }
                     }
                     task.putobjsense(mosek.objsense.minimize);
-                    task.optimize();
+                    task.optimize(); 
                     // Print a summary containing information
                     //   about the solution for debugging purposes
                     task.solutionsummary(mosek.streamtype.msg);
@@ -664,8 +664,10 @@ namespace mikity.ghComponents
             {
                 leaf.varOffset = numvar;
                 leaf.conOffset = numcon;
-                numvar += (leaf.nU * leaf.nV) + leaf.r * 4;  //z,H11,H22,H12,trace
-                numcon += leaf.r * 4 ;// H11,H22,H12,trace
+                numvar += (leaf.nU * leaf.nV) + leaf.r * 3;  //z,H11,H22,H12
+                numcon += leaf.r * 3;// H11,H22,H12
+                if (obj) numvar += leaf.r * 3; //z,target_z, z-_z
+                if (obj) numcon += leaf.r * 2; //z, z-target_z
             }
 
             foreach (var branch in _listBranch)
@@ -688,13 +690,7 @@ namespace mikity.ghComponents
                 }
                 numcon += branch.tuples.Count();// D(kink angle)
             }
-            /*foreach (var node in _listNode)
-            {
-                node.varOffset = numvar;
-                node.conOffset = numcon;
-                numvar++;  //always 1
-                numcon += node.N;  //usually 3
-            }*/
+
             foreach (var slice in _listSlice.Values)
             {
                 slice.varOffset = numvar;
@@ -705,13 +701,11 @@ namespace mikity.ghComponents
                     numcon++;
                 }
             }
-            /*foreach (var node in _listNode)
+
+            if (obj)
             {
-                node.varOffset = numvar;
-                node.conOffset = numcon;
-                numvar ++;  //always 3
-                numcon += node.N;  //usually 3
-            }*/
+                numvar++;
+            }
             //variable settings
             mosek.boundkey[] bkx = new mosek.boundkey[numvar];
             double[] blx = new double[numvar];
@@ -721,7 +715,7 @@ namespace mikity.ghComponents
                 //z
                 for (int i = 0; i < leaf.nU * leaf.nV; i++)
                 {
-                    bkx[i+leaf.varOffset] = mosek.boundkey.fr;
+                    bkx[i + leaf.varOffset] = mosek.boundkey.fr;
                     blx[i + leaf.varOffset] = -infinity;
                     bux[i + leaf.varOffset] = infinity;
                 }
@@ -730,7 +724,7 @@ namespace mikity.ghComponents
                 {
                     for (int i = 0; i < leaf.r; i++)
                     {
-                        int n = i * 4 + (leaf.nU * leaf.nV);
+                        int n = i * 3 + (leaf.nU * leaf.nV);
                         bkx[n + leaf.varOffset] = mosek.boundkey.fr;
                         blx[n + leaf.varOffset] = -infinity;
                         bux[n + leaf.varOffset] = infinity;
@@ -740,38 +734,33 @@ namespace mikity.ghComponents
                         bkx[n + 2 + leaf.varOffset] = mosek.boundkey.fr;
                         blx[n + 2 + leaf.varOffset] = -infinity;
                         bux[n + 2 + leaf.varOffset] = infinity;
-                        //lower bound of trace
-                        if (obj)
-                        {
-                            bkx[n + 2 + leaf.varOffset] = mosek.boundkey.lo;
-                            blx[n + 2 + leaf.varOffset] = 0.005;
-                            bux[n + 2 + leaf.varOffset] = infinity;
-                        }
-                        else
-                        {
-                            bkx[n + 2 + leaf.varOffset] = mosek.boundkey.fr;
-                            blx[n + 2 + leaf.varOffset] = -infinity;
-                            bux[n + 2 + leaf.varOffset] = infinity;
-                        }
                     }
                 }
-                /*else
+                //target z
+                if (obj)
                 {
-                    double S = 0.001;
+                    //z
                     for (int i = 0; i < leaf.r; i++)
                     {
-                        int n = i * 3 + (leaf.nU * leaf.nV);
-                        bkx[n + leaf.varOffset] = mosek.boundkey.ra;
-                        blx[n + leaf.varOffset] = -S;
-                        bux[n + leaf.varOffset] = S;
-                        bkx[n + 1 + leaf.varOffset] = mosek.boundkey.ra;
-                        blx[n + 1 + leaf.varOffset] = -S;
-                        bux[n + 1 + leaf.varOffset] = S;
-                        bkx[n + 2 + leaf.varOffset] = mosek.boundkey.ra;
-                        blx[n + 2 + leaf.varOffset] = -S;
-                        bux[n + 2 + leaf.varOffset] = S;
+                        bkx[i + (leaf.nU * leaf.nV) + 3 * leaf.r + leaf.varOffset] = mosek.boundkey.fr;
+                        blx[i + (leaf.nU * leaf.nV) + 3 * leaf.r + leaf.varOffset] = 0;
+                        bux[i + (leaf.nU * leaf.nV) + 3 * leaf.r + leaf.varOffset] = 0;
                     }
-                }*/
+                    //target_z
+                    for (int i = 0; i < leaf.r; i++)
+                    {
+                        bkx[i + (leaf.nU * leaf.nV) + 4 * leaf.r + leaf.varOffset] = mosek.boundkey.fx;
+                        blx[i + (leaf.nU * leaf.nV) + 4 * leaf.r + leaf.varOffset] = globalFunc(leaf.tuples[i].x, leaf.tuples[i].y);
+                        bux[i + (leaf.nU * leaf.nV) + 4 * leaf.r + leaf.varOffset] = globalFunc(leaf.tuples[i].x, leaf.tuples[i].y);
+                    }
+                    //z-target_z
+                    for (int i = 0; i < leaf.r; i++)
+                    {
+                        bkx[i + (leaf.nU * leaf.nV) + 5 * leaf.r + leaf.varOffset] = mosek.boundkey.lo;
+                        blx[i + (leaf.nU * leaf.nV) + 5 * leaf.r + leaf.varOffset] = 0;
+                        bux[i + (leaf.nU * leaf.nV) + 5 * leaf.r + leaf.varOffset] = 0;
+                    }
+                }
             }
             foreach(var branch in _listBranch)
             {
@@ -789,7 +778,7 @@ namespace mikity.ghComponents
                     for (int i = 0; i < branch.tuples.Count(); i++)
                     {
                         bkx[branch.N + i + branch.varOffset] = mosek.boundkey.lo;//may be lo
-                        blx[branch.N + i + branch.varOffset] = 0.3;
+                        blx[branch.N + i + branch.varOffset] = 0.0; //0.3
                         bux[branch.N + i + branch.varOffset] = 0;
                     }
                 }
@@ -801,15 +790,6 @@ namespace mikity.ghComponents
                         blx[i + branch.varOffset] = 0;
                         bux[i + branch.varOffset] = 0;
                     }
-                    /*if (branch.slice.sliceType == slice.type.fr)
-                    {
-                        bkx[branch.varOffset] = mosek.boundkey.fx;
-                        blx[branch.varOffset] = -2;
-                        bux[branch.varOffset] = -2;
-                        bkx[branch.varOffset+branch.N-1] = mosek.boundkey.fx;
-                        blx[branch.varOffset + branch.N-1] = -2;
-                        bux[branch.varOffset + branch.N-1] = -2;
-                    }*/
                     //kink angle parameter
                     for (int i = 0; i < branch.tuples.Count(); i++)
                     {
@@ -829,19 +809,9 @@ namespace mikity.ghComponents
                     //kink angle parameter
                     for (int i = 0; i < branch.tuples.Count(); i++)
                     {
-                        if (obj)
-                        {
-                            bkx[branch.N + i + branch.varOffset] = mosek.boundkey.ra;
-                            blx[branch.N + i + branch.varOffset] = 0;
-                            bux[branch.N + i + branch.varOffset] = 0.2;
-                        }
-                        else
-                        {
-                            bkx[branch.N + i + branch.varOffset] = mosek.boundkey.lo;
-                            blx[branch.N + i + branch.varOffset] = 0.1;
-                            bux[branch.N + i + branch.varOffset] = infinity;
-                        }
-
+                        bkx[branch.N + i + branch.varOffset] = mosek.boundkey.lo;
+                        blx[branch.N + i + branch.varOffset] = 0.0; //0.1
+                        bux[branch.N + i + branch.varOffset] = 0;
                     }
                 }
                 else//free
@@ -875,15 +845,6 @@ namespace mikity.ghComponents
                     bkx[slice.varOffset + 2] = mosek.boundkey.fx;
                     blx[slice.varOffset + 2] = slice.d;
                     bux[slice.varOffset + 2] = slice.d;
-                    /*bkx[slice.varOffset] = mosek.boundkey.fr;
-                    blx[slice.varOffset] = -infinity;
-                    bux[slice.varOffset] = infinity;
-                    bkx[slice.varOffset + 1] = mosek.boundkey.fr;
-                    blx[slice.varOffset + 1] = -infinity;
-                    bux[slice.varOffset + 1] = infinity;
-                    bkx[slice.varOffset + 2] = mosek.boundkey.fr;
-                    blx[slice.varOffset + 2] = -infinity;
-                    bux[slice.varOffset + 2] = infinity;*/
                 }
                 else
                 {
@@ -898,21 +859,12 @@ namespace mikity.ghComponents
                     bux[slice.varOffset + 2] = infinity;
                 }
             }
-            /*foreach (var node in _listNode)
+            if (obj)
             {
-                if (node.nodeType == node.type.fr)
-                {
-                    bkx[node.varOffset] = mosek.boundkey.fr;
-                    blx[node.varOffset] = -infinity;
-                    bux[node.varOffset] = infinity;
-                }
-                else
-                {
-                    bkx[node.varOffset] = mosek.boundkey.fx;
-                    blx[node.varOffset] = node.airyHeight;
-                    bux[node.varOffset] = node.airyHeight;
-                }
-            }*/
+                bkx[numvar - 1] = mosek.boundkey.up;
+                blx[numvar - 1] = 0;
+                bux[numvar - 1] = 2000;
+            }
 
             // Make mosek environment.
             using (mosek.Env env = new mosek.Env())
@@ -955,19 +907,16 @@ namespace mikity.ghComponents
                         //define H11,H12,H22
                         for (int i = 0; i < leaf.r; i++)
                         {
-                            int N11 = i * 4; //condition number
-                            int N22 = i * 4 + 1;
-                            int N12 = i * 4 + 2;
-                            int Ntrace = i * 4 + 3;
-                            int target = i * 4 + (leaf.nU * leaf.nV) + leaf.varOffset;   //variable number
+                            int N11 = i * 3; //condition number
+                            int N22 = i * 3 + 1;
+                            int N12 = i * 3 + 2;
+                            int target = i * 3 + (leaf.nU * leaf.nV) + leaf.varOffset;   //variable number
                             task.putaij(N11+leaf.conOffset, target, -1);
                             task.putconbound(N11 + leaf.conOffset, mosek.boundkey.fx, 0, 0);
                             task.putaij(N22 + leaf.conOffset, target + 1, -1);
                             task.putconbound(N22 + leaf.conOffset, mosek.boundkey.fx, 0, 0);
                             task.putaij(N12 + leaf.conOffset, target + 2, -1);
                             task.putconbound(N12 + leaf.conOffset, mosek.boundkey.fx, 0, 0);
-                            task.putaij(Ntrace + leaf.conOffset, target + 3, -1);
-                            task.putconbound(Ntrace + leaf.conOffset, mosek.boundkey.fx, 0, 0);
                             //N11
                             leaf.tuples[i].d2[0, 0].CopyTo(grad, 0);
                             leaf.tuples[i].d0.CopyTo(grad0, 0);
@@ -1013,17 +962,15 @@ namespace mikity.ghComponents
                                 val += grad[k];
                                 task.putaij(N12 + leaf.conOffset, leaf.tuples[i].internalIndex[k] + leaf.varOffset, -val);
                             }
-                            task.putaij(Ntrace + leaf.conOffset, target, 1);
-                            task.putaij(Ntrace + leaf.conOffset, target + 1, 1);
-                            
                         }
+                        
                         //if (leaf.leafType == leaf.type.convex)
                         {
                             for (int i = 0; i < leaf.r; i++)
                             {
-                                int N11 = i * 4 + (leaf.nU * leaf.nV); //variable number
-                                int N22 = i * 4 + 1 + (leaf.nU * leaf.nV);
-                                int N12 = i * 4 + 2 + (leaf.nU * leaf.nV);
+                                int N11 = i * 3 + (leaf.nU * leaf.nV); //variable number
+                                int N22 = i * 3 + 1 + (leaf.nU * leaf.nV);
+                                int N12 = i * 3 + 2 + (leaf.nU * leaf.nV);
 
                                 csub[0] = N11 + leaf.varOffset;
                                 csub[1] = N22 + leaf.varOffset;
@@ -1033,9 +980,57 @@ namespace mikity.ghComponents
                                                 csub);
                             }
                         }
+                        if (obj)
+                        {
+                            double[] grad00 = new double[leaf.tuples[0].nNode];
+                            for (int i = 0; i < leaf.r; i++)
+                            {
+                                leaf.tuples[i].d0.CopyTo(grad00, 0);
+                                for (int k = 0; k < leaf.tuples[i].nNode; k++)
+                                {
+                                    task.putaij(leaf.conOffset + leaf.r * 3 + i, leaf.varOffset + leaf.tuples[i].internalIndex[k], grad00[k]);
+                                }
+                                task.putaij(leaf.conOffset + leaf.r * 3 + i, leaf.varOffset + leaf.nU*leaf.nV+leaf.r*3+i,-1);
+                                task.putconbound(leaf.conOffset + leaf.r * 3 + i, mosek.boundkey.fx, 0, 0);
+                            }
+                            for (int i = 0; i < leaf.tuples.Count(); i++)
+                            {
+                                task.putaij(leaf.conOffset + leaf.r * 4 + i, leaf.varOffset + leaf.nU * leaf.nV + leaf.r * 3 + i, 1);
+                                task.putaij(leaf.conOffset + leaf.r * 4 + i, leaf.varOffset + leaf.nU * leaf.nV + leaf.r * 4 + i, -1);
+                                task.putaij(leaf.conOffset + leaf.r * 4 + i, leaf.varOffset + leaf.nU * leaf.nV + leaf.r * 5 + i, -1);
+                                task.putconbound(leaf.conOffset + leaf.r * 4 + i, mosek.boundkey.fx, 0, 0);
+                            }
+                        }
                     }
                     
-                    
+                    if (obj)
+                    {
+                        List<int> dsub=new List<int>();
+                        dsub.Add(numvar-1);
+                        foreach (var leaf in _listLeaf)
+                        {
+                            for (int i = 0; i < leaf.r; i++)
+                            {
+                                dsub.Add(leaf.varOffset + leaf.nU * leaf.nV + leaf.r * 5 + i);
+                            }
+                        }
+                        task.appendcone(mosek.conetype.quad, 0.0, dsub.ToArray());
+                    }
+                    //if (obj)
+                    //{
+                    //    task.putcj(numvar - 1, 1);
+                    //}
+                    /*
+                    if (obj)
+                    {
+                        foreach (var leaf in _listLeaf)
+                        {
+                            for (int i = 0; i < leaf.tuples.Count(); i++)
+                            {
+                                task.putcj(i + (leaf.nU * leaf.nV)  + 3 * leaf.r + leaf.varOffset,1);
+                            }
+                        }
+                    }*/
                     foreach (var branch in _listBranch)
                     {
                         if (branch.branchType == branch.type.kink)
@@ -1043,13 +1038,6 @@ namespace mikity.ghComponents
                             tieBranchD1(branch, branch.left, task, 2, 0);
                             tieBranchD1(branch, branch.right, task, 2, 1);
                             defineKinkAngle2(branch,branch.left,branch.right,task, branch.conOffset + branch.N*2, branch.varOffset + branch.N);
-                            if (obj)
-                            {
-                                for (int i = 0; i < branch.tuples.Count(); i++)
-                                {
-                                    task.putcj(branch.N + branch.varOffset + i,1);
-                                }
-                            }
                         }
                         else if (branch.branchType == branch.type.reinforce || branch.branchType == branch.type.open)
                         {
@@ -1076,26 +1064,8 @@ namespace mikity.ghComponents
                             defineKinkAngle(branch,branch.target, task, branch.conOffset + branch.N, branch.varOffset + branch.N);
                         }
                     }
-                    /*foreach (var slice in _listSlice.Values)
-                    {
-                        if (slice.sliceType == slice.type.fx)
-                        {
-                            //double var = slice.a * slice.a + slice.b * slice.b;
-                            task.putconbound(slice.conOffset, mosek.boundkey.fx, 1d, 1d);
-                            task.putqconk(slice.conOffset, new int[2] { slice.varOffset, slice.varOffset + 1 }, new int[2] { slice.varOffset, slice.varOffset + 1 }, new double[2] { 1, 1 });
-                        }
-                    }*/
-                    /*foreach (var node in _listNode)
-                    {
-                        for (int i = 0; i < node.N; i++)
-                        {
-                            task.putconbound(node.conOffset + i, mosek.boundkey.fx, 0, 0);
-                            task.putaij(node.conOffset + i, node.varOffset, -1);
-                            task.putaij(node.conOffset + i, node.share[i].varOffset + (node.number[i]), 1);
-                        }
-                    }
-                    */
-                    task.putobjsense(mosek.objsense.maximize);
+                    
+                    task.putobjsense(mosek.objsense.minimize);
                     task.writedata("c:/out/mosek_task_dump.opf");
                     task.optimize();
                     // Print a summary containing information
