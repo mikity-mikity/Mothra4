@@ -778,7 +778,7 @@ namespace mikity.ghComponents
                     for (int i = 0; i < branch.tuples.Count(); i++)
                     {
                         bkx[branch.N + i + branch.varOffset] = mosek.boundkey.lo;//may be lo
-                        blx[branch.N + i + branch.varOffset] = 0.0; //0.3
+                        blx[branch.N + i + branch.varOffset] = 0.1; //0.3
                         bux[branch.N + i + branch.varOffset] = 0;
                     }
                 }
@@ -810,7 +810,7 @@ namespace mikity.ghComponents
                     for (int i = 0; i < branch.tuples.Count(); i++)
                     {
                         bkx[branch.N + i + branch.varOffset] = mosek.boundkey.lo;
-                        blx[branch.N + i + branch.varOffset] = 0.0; //0.1
+                        blx[branch.N + i + branch.varOffset] = 0.1; //0.1
                         bux[branch.N + i + branch.varOffset] = 0;
                     }
                 }
@@ -1016,10 +1016,10 @@ namespace mikity.ghComponents
                         }
                         task.appendcone(mosek.conetype.quad, 0.0, dsub.ToArray());
                     }
-                    //if (obj)
-                    //{
-                    //    task.putcj(numvar - 1, 1);
-                    //}
+                    if (obj)
+                    {
+                        task.putcj(numvar - 1, 1);
+                    }
                     /*
                     if (obj)
                     {
@@ -1067,143 +1067,153 @@ namespace mikity.ghComponents
                     
                     task.putobjsense(mosek.objsense.minimize);
                     task.writedata("c:/out/mosek_task_dump.opf");
-                    task.optimize();
-                    // Print a summary containing information
-                    //   about the solution for debugging purposes
-                    task.solutionsummary(mosek.streamtype.msg);
 
-                    mosek.solsta solsta;
-                    /* Get status information about the solution */
-                    task.getsolsta(mosek.soltype.itr, out solsta);
-
-                    double[] xx = new double[numvar];
-
-                    task.getxx(mosek.soltype.itr, // Basic solution.     
-                                 xx);
-
-                    switch (solsta)
+                    for (int I = 0; I < 10; I++)
                     {
-                        case mosek.solsta.optimal:
-                            System.Windows.Forms.MessageBox.Show("Optimal primal solution\n");
+                        task.optimize();
+                        // Print a summary containing information
+                        //   about the solution for debugging purposes
+                        task.solutionsummary(mosek.streamtype.msg);
+
+                        mosek.solsta solsta;
+                        /* Get status information about the solution */
+                        task.getsolsta(mosek.soltype.itr, out solsta);
+
+                        double[] xx = new double[numvar];
+
+                        task.getxx(mosek.soltype.itr, // Basic solution.     
+                                     xx);
+
+                        switch (solsta)
+                        {
+                            case mosek.solsta.optimal:
+                                System.Windows.Forms.MessageBox.Show("Optimal primal solution\n");
+                                break;
+                            case mosek.solsta.near_optimal:
+                                System.Windows.Forms.MessageBox.Show("Near Optimal primal solution\n");
+                                break;
+                            case mosek.solsta.dual_infeas_cer:
+                            case mosek.solsta.prim_infeas_cer:
+                            case mosek.solsta.near_dual_infeas_cer:
+                            case mosek.solsta.near_prim_infeas_cer:
+                                Console.WriteLine("Primal or dual infeasibility.\n");
+                                break;
+                            case mosek.solsta.unknown:
+                                System.Windows.Forms.MessageBox.Show("Unknown solution status\n");
+                                break;
+                            default:
+                                System.Windows.Forms.MessageBox.Show("Other solution status\n");
+                                break;
+
+                        }
+                        //store airy potential
+                        System.Windows.Forms.MessageBox.Show(string.Format("error={0}", xx[numvar - 1]));
+                        foreach (var leaf in listLeaf)
+                        {
+                            double[] x = new double[leaf.nU * leaf.nV];
+                            for (int j = 0; j < leaf.nV; j++)
+                            {
+                                for (int i = 0; i < leaf.nU; i++)
+                                {
+                                    x[i + j * leaf.nU] = xx[i + j * leaf.nU + leaf.varOffset];
+                                }
+                            }
+                            leaf.myMasonry.setupAiryPotentialFromList(x);
+                        }
+                        foreach (var leaf in listLeaf)
+                        {
+                            foreach (var tup in leaf.tuples)
+                            {
+                                leaf.myMasonry.elemList[tup.index].computeStressFunction(tup);
+                            }
+                        }
+                        foreach (var branch in _listBranch)
+                        {
+                            double[] x = new double[branch.N];
+                            for (int i = 0; i < branch.N; i++)
+                            {
+                                x[i] = xx[i + branch.varOffset];
+                            }
+                            branch.myArch.setupAiryPotentialFromList(x);
+                        }
+                        foreach (var slice in _listSlice.Values)
+                        {
+                            slice.a = xx[slice.varOffset];
+                            slice.b = xx[slice.varOffset + 1];
+                            slice.d = xx[slice.varOffset + 2];
+                            double norm = Math.Sqrt(slice.a * slice.a + slice.b * slice.b + 1);
+                            var pl = new Rhino.Geometry.Plane(slice.a, slice.b, 1d, slice.d / norm);
+                            slice.update(pl);
+                        }
+                        foreach (var branch in listBranch)
+                        {
+                            foreach (var tup in branch.tuples)
+                            {
+                                if (branch.branchType == branch.type.kink)
+                                {
+                                    branch.left.myMasonry.elemList[tup.left.index].computeTangent(tup.left);
+                                    branch.right.myMasonry.elemList[tup.right.index].computeTangent(tup.right);
+                                }
+                                else if (branch.branchType == branch.type.fix)
+                                {
+                                    branch.target.myMasonry.elemList[tup.target.index].computeTangent(tup.target);
+                                }
+                                else
+                                {
+
+                                    branch.target.myMasonry.elemList[tup.target.index].computeTangent(tup.target);
+                                    var vars = branch.slice.pl.GetPlaneEquation();
+                                    branch.target.myMasonry.elemList[tup.target.index].computeTangent(tup.target, vars[0], vars[1], vars[2], vars[3]); //valDc
+                                }
+                            }
+                        }
+
+                        foreach (var branch in _listBranch)
+                        {
+                            branch.airyCrv = branch.crv.Duplicate() as NurbsCurve;
+                            for (int j = 0; j < branch.N; j++)
+                            {
+                                var P = branch.crv.Points[j];
+                                branch.airyCrv.Points.SetPoint(j, new Point3d(P.Location.X, P.Location.Y, xx[j + branch.varOffset]));
+                            }
+                            for (int i = 0; i < branch.tuples.Count(); i++)
+                            {
+                                //branch.tuples[i].z = branch.airyCrv.PointAt(branch.tuples[i].t).Z;
+                                //int D = i + branch.N;
+                                if (branch.branchType == branch.type.open)
+                                {
+                                    branch.tuples[i].H[0, 0] = branch.tuples[i].target.valD - branch.tuples[i].target.valDc;
+                                }
+                                else if (branch.branchType == branch.type.reinforce)
+                                {
+                                    branch.tuples[i].H[0, 0] = branch.tuples[i].target.valD - branch.tuples[i].target.valDc;
+                                }
+                                else if (branch.branchType == branch.type.fix)
+                                {
+                                    branch.tuples[i].H[0, 0] = 0;
+                                }
+                                else
+                                {
+                                    branch.tuples[i].H[0, 0] = branch.tuples[i].left.valD + branch.tuples[i].right.valD;
+                                }
+                            }
+                        }
+                        foreach (var leaf in _listLeaf)
+                        {
+                            leaf.airySrf = leaf.srf.Duplicate() as NurbsSurface;
+                            for (int j = 0; j < leaf.nV; j++)
+                            {
+                                for (int i = 0; i < leaf.nU; i++)
+                                {
+                                    var P = leaf.srf.Points.GetControlPoint(i, j);
+                                    leaf.airySrf.Points.SetControlPoint(i, j, new ControlPoint(P.Location.X, P.Location.Y, xx[i + j * leaf.nU + leaf.varOffset]));
+                                }
+                            }
+                        }
+                        ExpirePreview(true);
+                        if ((solsta == mosek.solsta.optimal || solsta == mosek.solsta.near_optimal))
+                        {
                             break;
-                        case mosek.solsta.near_optimal:
-                            System.Windows.Forms.MessageBox.Show("Near Optimal primal solution\n");
-                            break;
-                        case mosek.solsta.dual_infeas_cer:
-                        case mosek.solsta.prim_infeas_cer:
-                        case mosek.solsta.near_dual_infeas_cer:
-                        case mosek.solsta.near_prim_infeas_cer:
-                            Console.WriteLine("Primal or dual infeasibility.\n");
-                            break;
-                        case mosek.solsta.unknown:
-                            System.Windows.Forms.MessageBox.Show("Unknown solution status\n");
-                            break;
-                        default:
-                            System.Windows.Forms.MessageBox.Show("Other solution status\n");
-                            break;
-
-                    }
-                    //store airy potential
-                    foreach (var leaf in listLeaf)
-                    {
-                        double[] x = new double[leaf.nU * leaf.nV];
-                        for (int j = 0; j < leaf.nV; j++)
-                        {
-                            for (int i = 0; i < leaf.nU; i++)
-                            {
-                                x[i + j * leaf.nU] = xx[i + j * leaf.nU + leaf.varOffset];
-                            }
-                        }
-                        leaf.myMasonry.setupAiryPotentialFromList(x);
-                    }
-                    foreach (var leaf in listLeaf)
-                    {
-                        foreach (var tup in leaf.tuples)
-                        {
-                            leaf.myMasonry.elemList[tup.index].computeStressFunction(tup);
-                        }
-                    }
-                    foreach (var branch in _listBranch)
-                    {
-                        double[] x = new double[branch.N];
-                        for (int i = 0; i < branch.N; i++)
-                        {
-                            x[i] = xx[i + branch.varOffset];
-                        }
-                        branch.myArch.setupAiryPotentialFromList(x);
-                    }
-                    foreach (var slice in _listSlice.Values)
-                    {
-                        slice.a = xx[slice.varOffset];
-                        slice.b = xx[slice.varOffset+1];
-                        slice.d = xx[slice.varOffset+2];
-                        double norm = Math.Sqrt(slice.a * slice.a + slice.b * slice.b + 1);
-                        var pl = new Rhino.Geometry.Plane(slice.a, slice.b, 1d, slice.d/norm);
-                        slice.update(pl);
-                    }
-                    foreach (var branch in listBranch)
-                    {
-                        foreach (var tup in branch.tuples)
-                        {
-                            if (branch.branchType == branch.type.kink)
-                            {
-                                branch.left.myMasonry.elemList[tup.left.index].computeTangent(tup.left);
-                                branch.right.myMasonry.elemList[tup.right.index].computeTangent(tup.right);
-                            }
-                            else if (branch.branchType == branch.type.fix)
-                            {
-                                branch.target.myMasonry.elemList[tup.target.index].computeTangent(tup.target);
-                            }
-                            else
-                            {
-
-                                branch.target.myMasonry.elemList[tup.target.index].computeTangent(tup.target);
-                                var vars = branch.slice.pl.GetPlaneEquation();
-                                branch.target.myMasonry.elemList[tup.target.index].computeTangent(tup.target, vars[0], vars[1], vars[2], vars[3]); //valDc
-                            }
-                        }
-                    }
-                  
-                    foreach (var branch in _listBranch)
-                    {
-                        branch.airyCrv = branch.crv.Duplicate() as NurbsCurve;
-                        for (int j = 0; j < branch.N; j++)
-                        {
-                            var P = branch.crv.Points[j];
-                            branch.airyCrv.Points.SetPoint(j,new Point3d(P.Location.X, P.Location.Y, xx[j + branch.varOffset]));
-                        }
-                        for(int i=0;i<branch.tuples.Count();i++)
-                        {
-                            //branch.tuples[i].z = branch.airyCrv.PointAt(branch.tuples[i].t).Z;
-                            //int D = i + branch.N;
-                            if (branch.branchType == branch.type.open)
-                            {
-                                branch.tuples[i].H[0, 0] = branch.tuples[i].target.valD - branch.tuples[i].target.valDc;
-                            }
-                            else if (branch.branchType==branch.type.reinforce)
-                            {
-                                branch.tuples[i].H[0, 0] = branch.tuples[i].target.valD - branch.tuples[i].target.valDc;
-                            }
-                            else if (branch.branchType == branch.type.fix)
-                            {
-                                branch.tuples[i].H[0, 0] = 0;
-                            }
-                            else
-                            {
-                                branch.tuples[i].H[0, 0] = branch.tuples[i].left.valD + branch.tuples[i].right.valD;
-                            }
-                        }
-                    }
-                    foreach (var leaf in _listLeaf)
-                    {
-                        leaf.airySrf = leaf.srf.Duplicate() as NurbsSurface;
-                        for (int j = 0; j < leaf.nV; j++)
-                        {
-                            for (int i = 0; i < leaf.nU; i++)
-                            {
-                                var P = leaf.srf.Points.GetControlPoint(i, j);
-                                leaf.airySrf.Points.SetControlPoint(i, j, new ControlPoint(P.Location.X, P.Location.Y, xx[i + j * leaf.nU  + leaf.varOffset]));
-                            }
                         }
                     }
                 }
