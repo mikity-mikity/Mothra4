@@ -10,7 +10,7 @@ namespace mikity.ghComponents
     {
         public Rhino.Geometry.Transform zDown_eq = Rhino.Geometry.Transform.Translation(0, 0, 25d);
         public Rhino.Geometry.Transform zDown = Rhino.Geometry.Transform.Translation(0, 0, 15d);
-
+        public Rhino.Geometry.Transform zScale = Rhino.Geometry.Transform.Scale(Rhino.Geometry.Plane.WorldXY, 1, 1, 1d);
         public override void DrawViewportWires(Grasshopper.Kernel.IGH_PreviewArgs args)
         {
             if (Hidden)
@@ -38,14 +38,14 @@ namespace mikity.ghComponents
                     args.Display.DrawCurve(error, System.Drawing.Color.Red, 10);
                 }
             }
-            if (listSlice != null)
+            /*if (listSlice != null)
             {
                 foreach (var slice in listSlice.Values)
                 {
                     var pl = slice.pl;
                     args.Display.DrawPolygon(new Rhino.Geometry.Point3d[] { pl.PointAt(-2, -2), pl.PointAt(-2, 2), pl.PointAt(2, 2), pl.PointAt(2, -2) }, System.Drawing.Color.Azure, true);
                 }
-            }
+            }*/
             foreach (var branch in listBranch)
             {
                 switch (branch.branchType)
@@ -67,7 +67,11 @@ namespace mikity.ghComponents
             foreach (var leaf in listLeaf)
             {
                 if (leaf.airySrf != null)
-                    args.Display.DrawSurface(leaf.airySrf, System.Drawing.Color.Brown, 3);
+                {
+                    var srf = leaf.airySrf.Duplicate() as Rhino.Geometry.NurbsSurface;
+                    srf.Transform(zScale);
+                    args.Display.DrawSurface(srf, System.Drawing.Color.Brown, 3);
+                }
             }
             foreach (var leaf in listLeaf)
             {
@@ -78,13 +82,15 @@ namespace mikity.ghComponents
                     args.Display.DrawSurface(srf, System.Drawing.Color.Brown, 3);
                 }
             }
-            foreach (var branch in listBranch)
+            /*foreach (var branch in listBranch)
             {
                 if (branch.airyCrv != null)
                 {
-                    args.Display.DrawCurve(branch.airyCrv, System.Drawing.Color.SeaGreen, 4);
+                    var crv = branch.airyCrv.Duplicate() as Rhino.Geometry.NurbsCurve;
+                    crv.Transform(zScale);
+                    args.Display.DrawCurve(crv, System.Drawing.Color.SeaGreen, 4);
                 }
-            }
+            }*/
             foreach (var branch in listBranch)
             {
                 if (branch.branchType == branch.type.fix)

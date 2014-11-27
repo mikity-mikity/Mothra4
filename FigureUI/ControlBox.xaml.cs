@@ -23,7 +23,10 @@ namespace Mothra.UI
         public newRadioButton[] radioButtonList;
         public Func<double, double> coeff = null;
         public double force = 0.02;
+        public double allow = 2000;
+        public double zScale=1.0, sScale=1.0;
         private Action radio1 = null;
+        private Action ref1 = null;
         public bool objective
         {
             get
@@ -42,6 +45,10 @@ namespace Mothra.UI
         public void setFunctionForRadio1(Action func)
         {
             radio1 = func;
+        }
+        public void setFunctionToReflect(Action func)
+        {
+            ref1 = func;
         }
         public ControlBox()
         {
@@ -187,6 +194,59 @@ namespace Mothra.UI
         {
             force = 0.1;
 
+        }
+        private void Radio0a_Checked(object sender, RoutedEventArgs e)
+        {
+            allow = 200;
+        }
+        private void Radio1a_Checked(object sender, RoutedEventArgs e)
+        {
+            allow = 500;
+        }
+
+        private void Radio2a_Checked(object sender, RoutedEventArgs e)
+        {
+            allow = 1000;
+        }
+
+        private void Radio3a_Checked(object sender, RoutedEventArgs e)
+        {
+            allow = 2000;
+        }
+
+        private void Radio4a_Checked(object sender, RoutedEventArgs e)
+        {
+            allow = 5000;
+        }
+
+        private void Radio5a_Checked(object sender, RoutedEventArgs e)
+        {
+            allow = 10000;
+        }
+
+        private void Reflect_Click(object sender, RoutedEventArgs e)
+        {
+            //compute zScale,sScale
+            try
+            {
+                zScale = double.Parse(this._zScale.Text);
+            }
+            catch
+            {
+                zScale = 1.0;
+                this._zScale.Text = "1.0";
+            }
+            try
+            {
+                sScale = double.Parse(this._sScale.Text);
+            }
+            catch
+            {
+                sScale = 1.0;
+                this._sScale.Text = "1.0";
+            }
+
+            ref1();
         }
     }
 }

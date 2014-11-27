@@ -13,6 +13,23 @@
                 <mm:newButton x:Name="Compute2" Text="Compute an equlibriated shape"></mm:newButton>
             </WrapPanel>
             <WrapPanel>
+                <Label>allowable torelance</Label>
+                <RadioButton x:Name="Radio0a" Checked="Radio0a_Checked" GroupName="allow">200</RadioButton>
+                <RadioButton x:Name="Radio1a" Checked="Radio1a_Checked" GroupName="allow">500</RadioButton>
+                <RadioButton x:Name="Radio2a" Checked="Radio2a_Checked" GroupName="allow">1000</RadioButton>
+                <RadioButton x:Name="Radio3a" Checked="Radio3a_Checked" IsChecked="True" GroupName="allow">2000</RadioButton>
+                <RadioButton x:Name="Radio4a" Checked="Radio4a_Checked" GroupName="allow">5000</RadioButton>
+                <RadioButton x:Name="Radio5a" Checked="Radio5a_Checked" GroupName="allow">10000</RadioButton>
+            </WrapPanel>
+            <WrapPanel Height="Auto" Name="wrapPanel" Width="Auto">
+                <Button x:Name="Reflect" Click="Reflect_Click" >Reflect</Button>
+                <Label>scaling factor of Airy stress function</Label>
+                <TextBox x:Name="_zScale">1.0</TextBox>
+                <Label>　　　　</Label>
+                <Label>scaling factor of stress field</Label>
+                <TextBox x:Name="_sScale">1.0</TextBox>
+            </WrapPanel>
+            <WrapPanel>
                 <RadioButton x:Name="Radio1d" Checked="Radio1d_Checked" GroupName="coeff">1</RadioButton>
                 <RadioButton x:Name="Radio2d" Checked="Radio2d_Checked" GroupName="coeff">gamma</RadioButton>
                 <RadioButton x:Name="Radio3d" Checked="Radio3d_Checked" IsChecked="True" GroupName="coeff">1/gamma</RadioButton>

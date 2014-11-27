@@ -311,10 +311,15 @@ namespace mikity.ghComponents
             {
                 if (ready)
                 {
-                    hodgeStar(listLeaf, listBranch, listNode, myControlBox.coeff);
+                    hodgeStar(listLeaf, listBranch, listNode, myControlBox.coeff, myControlBox.sScale);
                     ready = true;
                     this.ExpirePreview(true);
                 }
+            });
+            myControlBox.setFunctionToReflect(() => {
+                zScale = Rhino.Geometry.Transform.Scale(Plane.WorldXY, 1, 1, myControlBox.zScale);
+                hodgeStar(listLeaf, listBranch, listNode, myControlBox.coeff, myControlBox.sScale);
+                this.ExpirePreview(true);
             });
         }
         void computeG()
@@ -511,10 +516,10 @@ namespace mikity.ghComponents
             }
             //call mosek
             if(listPnt.Count>0)
-                mosek1(listLeaf, listBranch, listSlice,true);
+                mosek1(listLeaf, listBranch, listSlice, true, myControlBox.allow);
             else
-                mosek1(listLeaf, listBranch, listSlice, false);
-            hodgeStar(listLeaf, listBranch, listNode, myControlBox.coeff);
+                mosek1(listLeaf, listBranch, listSlice, false, myControlBox.allow);
+            hodgeStar(listLeaf, listBranch, listNode, myControlBox.coeff, myControlBox.sScale);
             ready = true;
             this.ExpirePreview(true);
         }
