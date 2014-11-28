@@ -197,31 +197,39 @@ namespace Mothra.UI
         }
         private void Radio0a_Checked(object sender, RoutedEventArgs e)
         {
-            allow = 200;
+            allow = 25;
         }
         private void Radio1a_Checked(object sender, RoutedEventArgs e)
         {
-            allow = 500;
+            allow = 50;
         }
-
         private void Radio2a_Checked(object sender, RoutedEventArgs e)
         {
-            allow = 1000;
+            allow = 100;
         }
 
         private void Radio3a_Checked(object sender, RoutedEventArgs e)
         {
-            allow = 2000;
+            allow = 200;
         }
 
         private void Radio4a_Checked(object sender, RoutedEventArgs e)
         {
-            allow = 5000;
+            allow = 400;
         }
 
         private void Radio5a_Checked(object sender, RoutedEventArgs e)
         {
-            allow = 10000;
+            allow = 800;
+        }
+
+        private void Radio6a_Checked(object sender, RoutedEventArgs e)
+        {
+            allow = 1600;
+        }
+        private void Radio7a_Checked(object sender, RoutedEventArgs e)
+        {
+            allow = 3200;
         }
 
         private void Reflect_Click(object sender, RoutedEventArgs e)

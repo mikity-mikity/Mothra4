@@ -14,12 +14,14 @@
             </WrapPanel>
             <WrapPanel>
                 <Label>allowable torelance</Label>
-                <RadioButton x:Name="Radio0a" Checked="Radio0a_Checked" GroupName="allow">200</RadioButton>
-                <RadioButton x:Name="Radio1a" Checked="Radio1a_Checked" GroupName="allow">500</RadioButton>
-                <RadioButton x:Name="Radio2a" Checked="Radio2a_Checked" GroupName="allow">1000</RadioButton>
-                <RadioButton x:Name="Radio3a" Checked="Radio3a_Checked" IsChecked="True" GroupName="allow">2000</RadioButton>
-                <RadioButton x:Name="Radio4a" Checked="Radio4a_Checked" GroupName="allow">5000</RadioButton>
-                <RadioButton x:Name="Radio5a" Checked="Radio5a_Checked" GroupName="allow">10000</RadioButton>
+                <RadioButton x:Name="Radio0a" Checked="Radio0a_Checked" GroupName="allow">25</RadioButton>
+                <RadioButton x:Name="Radio1a" Checked="Radio1a_Checked" GroupName="allow">50</RadioButton>
+                <RadioButton x:Name="Radio2a" Checked="Radio2a_Checked" GroupName="allow">100</RadioButton>
+                <RadioButton x:Name="Radio3a" Checked="Radio3a_Checked" GroupName="allow">200</RadioButton>
+                <RadioButton x:Name="Radio4a" Checked="Radio4a_Checked" IsChecked="True" GroupName="allow">400</RadioButton>
+                <RadioButton x:Name="Radio5a" Checked="Radio5a_Checked"  GroupName="allow">800</RadioButton>
+                <RadioButton x:Name="Radio6a" Checked="Radio6a_Checked" GroupName="allow">1600</RadioButton>
+                <RadioButton x:Name="Radio7a" Checked="Radio7a_Checked" GroupName="allow">3200</RadioButton>
             </WrapPanel>
             <WrapPanel Height="Auto" Name="wrapPanel" Width="Auto">
                 <Button x:Name="Reflect" Click="Reflect_Click" >Reflect</Button>

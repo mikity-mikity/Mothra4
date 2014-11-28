@@ -116,6 +116,7 @@ namespace mikity.ghComponents
             public int conOffset;
             public double norm = 0;
             public double a, b, d;
+            public List<branch> lB=new List<branch>();
             public enum type
             {
                 fr,fx
@@ -123,6 +124,7 @@ namespace mikity.ghComponents
             public type sliceType;
             public slice()
             {
+                lB.Clear();
             }
             public void update(Plane _pl)
             {
@@ -612,11 +614,14 @@ namespace mikity.ghComponents
                     branch.sliceKey=key;
                     try{
                         branch.slice=listSlice[key];
+                        branch.slice.sliceType = slice.type.fr;
+                        branch.slice.lB.Add(branch);
                     }
                     catch (KeyNotFoundException e){
                         listSlice[key]=new slice();
                         branch.slice=listSlice[key];
-                        branch.slice.sliceType=slice.type.fr;                  
+                        branch.slice.sliceType=slice.type.fr;
+                        branch.slice.lB.Add(branch);
                     }
                 }
                 else if(crvTypes[i]== "kink")
@@ -630,12 +635,15 @@ namespace mikity.ghComponents
                     try
                     {
                         branch.slice = listSlice[key];
+                        branch.slice.sliceType = slice.type.fr;
+                        branch.slice.lB.Add(branch);
                     }
                     catch (KeyNotFoundException e)
                     {
                         listSlice[key] = new slice();
                         branch.slice = listSlice[key];
                         branch.slice.sliceType = slice.type.fr;
+                        branch.slice.lB.Add(branch);
                         /*
                         var slider = myControlBox.addSliderRot(0, 1, 100, 40, (flag) => { if (flag) { branch.slice.sliceType = slice.type.fx; } else { branch.slice.sliceType = slice.type.fr; } });
                         slider.Converter = (val, sign) =>
