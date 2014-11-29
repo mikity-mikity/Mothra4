@@ -479,27 +479,24 @@ namespace mikity.ghComponents
                     ShoNS.Array.SparseDoubleArray mat = new SparseDoubleArray(numvar, numvar);
                     foreach (var leaf in _listLeaf)
                     {
-                        if (leaf.leafType == leaf.type.convex)
+                        foreach (var tup in leaf.tuples)
                         {
-                            foreach (var tup in leaf.tuples)
+                            var det = tup.SPK[0, 0] * tup.SPK[1, 1] - tup.SPK[0, 1] * tup.SPK[0, 1];
+                            if (det > 0)
                             {
-                                var det = tup.SPK[0, 0] * tup.SPK[1, 1] - tup.SPK[0, 1] * tup.SPK[0, 1];
-                                if (det > 0)
+                                for (int i = 0; i < tup.nNode; i++)
                                 {
-                                    for (int i = 0; i < tup.nNode; i++)
+                                    for (int j = 0; j < tup.nNode; j++)
                                     {
-                                        for (int j = 0; j < tup.nNode; j++)
+                                        for (int k = 0; k < 3; k++)
                                         {
-                                            for (int k = 0; k < 3; k++)
+                                            for (int l = 0; l < 2; l++)
                                             {
-                                                for (int l = 0; l < 2; l++)
+                                                for (int m = 0; m < 2; m++)
                                                 {
-                                                    for (int m = 0; m < 2; m++)
-                                                    {
-                                                        var val = tup.B[l, m, i * 3 + k, j * 3 + k] * tup.SPK[l, m] * tup.refDv * tup.area;
-                                                        if (leaf.varOffset + tup.internalIndex[j] * 3 + k > leaf.varOffset + tup.internalIndex[i] * 3 + k) continue;
-                                                        mat[leaf.varOffset + tup.internalIndex[i] * 3 + k, leaf.varOffset + tup.internalIndex[j] * 3 + k] += val;
-                                                    }
+                                                    var val = tup.B[l, m, i * 3 + k, j * 3 + k] * tup.SPK[l, m] * tup.refDv * tup.area;
+                                                    if (leaf.varOffset + tup.internalIndex[j] * 3 + k > leaf.varOffset + tup.internalIndex[i] * 3 + k) continue;
+                                                    mat[leaf.varOffset + tup.internalIndex[i] * 3 + k, leaf.varOffset + tup.internalIndex[j] * 3 + k] += val;
                                                 }
                                             }
                                         }
@@ -632,20 +629,13 @@ namespace mikity.ghComponents
                     }
                     foreach (var leaf in _listLeaf)
                     {
-                        if (leaf.leafType == leaf.type.convex)
+                        leaf.shellSrf = leaf.srf.Duplicate() as NurbsSurface;
+                        for (int i = 0; i < leaf.nU; i++)
                         {
-                            leaf.shellSrf = leaf.srf.Duplicate() as NurbsSurface;
-                            for (int i = 0; i < leaf.nU; i++)
+                            for (int j = 0; j < leaf.nV; j++)
                             {
-                                for (int j = 0; j < leaf.nV; j++)
-                                {
-                                    leaf.shellSrf.Points.SetControlPoint(i, j, new ControlPoint(xx[leaf.varOffset + (i + leaf.nU * j) * 3 + 0], xx[leaf.varOffset + (i + leaf.nU * j) * 3 + 1], xx[leaf.varOffset + (i + leaf.nU * j) * 3 + 2]));
-                                }
+                                leaf.shellSrf.Points.SetControlPoint(i, j, new ControlPoint(xx[leaf.varOffset + (i + leaf.nU * j) * 3 + 0], xx[leaf.varOffset + (i + leaf.nU * j) * 3 + 1], xx[leaf.varOffset + (i + leaf.nU * j) * 3 + 2]));
                             }
-                        }
-                        else
-                        {
-                            leaf.shellSrf = null;
                         }
                     }
 

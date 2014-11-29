@@ -184,11 +184,6 @@ namespace mikity.ghComponents
             public Interval domU, domV;
             public tuple_ex[] tuples;
             public tuple_ex[] edgeTuples;
-            public enum type
-            {
-                flat,convex
-            }
-            public type leafType;
         }
         public class dl_ex : Minilla3D.Elements.nurbsCurve.dl
         {
@@ -296,7 +291,6 @@ namespace mikity.ghComponents
         {
             pManager.AddSurfaceParameter("listSurface", "lstSrf", "list of surfaces", Grasshopper.Kernel.GH_ParamAccess.list);
             pManager.AddCurveParameter("listCurve", "lstCrv", "list of curves", Grasshopper.Kernel.GH_ParamAccess.list);
-            pManager.AddTextParameter("listType", "lstSrfType", "list of types of surfaces", Grasshopper.Kernel.GH_ParamAccess.list);
             pManager.AddTextParameter("listType", "lstCrvType", "list of types of edge curves", Grasshopper.Kernel.GH_ParamAccess.list);
             pManager.AddPointParameter("pnts", "lstPnts", "list of points to compose target surface", Grasshopper.Kernel.GH_ParamAccess.list);
         }
@@ -577,16 +571,13 @@ namespace mikity.ghComponents
             _listSrf = new List<Surface>();
             _listCrv = new List<Curve>();
             listPnt = new List<Point3d>();
-            List<string> srfTypes = new List<string>();
             List<string> crvTypes = new List<string>();
             List<string> pntHeights = new List<string>();
             if (!DA.GetDataList(0, _listSrf)) { return; }
             if (!DA.GetDataList(1, _listCrv)) { return; }
-            if (!DA.GetDataList(2, srfTypes)) { return; }
-            if (!DA.GetDataList(3, crvTypes)) { return; }
-            if (!DA.GetDataList(4, listPnt)) { listPnt.Clear(); }
+            if (!DA.GetDataList(2, crvTypes)) { return; }
+            if (!DA.GetDataList(3, listPnt)) { listPnt.Clear(); }
 
-            if (_listSrf.Count != srfTypes.Count) { AddRuntimeMessage(Grasshopper.Kernel.GH_RuntimeMessageLevel.Error, "need types for surfaces"); return; }
             if (_listCrv.Count != crvTypes.Count) { AddRuntimeMessage(Grasshopper.Kernel.GH_RuntimeMessageLevel.Error, "need types for curves"); return; }
 
             listSlice = new Dictionary<string, slice>();
@@ -800,18 +791,6 @@ namespace mikity.ghComponents
                 //(0,1)->(0,0)
                 curve = leaf.srf.IsoCurve(1, domainU.T0) as NurbsCurve;
                 leaf.flip[3] = findCurve(leaf, ref leaf.branch[3], listBranch, curve);//left
-                switch (srfTypes[i])
-                {
-                    case "convex":
-                        leaf.leafType = leaf.type.convex;
-                        break;
-                    case "flat":
-                        leaf.leafType = leaf.type.flat;
-                        break;
-                    default:
-                        AddRuntimeMessage(Grasshopper.Kernel.GH_RuntimeMessageLevel.Error, "type should be either of convex or flat");
-                        return;
-                }
 
             }
             //multiqudric surface
