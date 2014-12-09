@@ -114,9 +114,13 @@ namespace mikity.ghComponents
             {
                 if (branch.shellCrv != null)
                 {
-                    var crv = branch.shellCrv.Duplicate() as Rhino.Geometry.NurbsCurve;
-                    crv.Transform(zDown_eq);
-                    args.Display.DrawCurve(crv, System.Drawing.Color.SeaGreen, 3);
+                    if (branch.branchType == branch.type.kink || branch.branchType == branch.type.reinforce)
+                    {
+
+                        var crv = branch.shellCrv.Duplicate() as Rhino.Geometry.NurbsCurve;
+                        crv.Transform(zDown_eq);
+                        args.Display.DrawCurve(crv, System.Drawing.Color.SeaGreen, 3);
+                    }
                 }
             }
             //find max value of reinforcement
