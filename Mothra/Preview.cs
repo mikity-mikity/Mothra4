@@ -138,7 +138,7 @@ namespace mikity.ghComponents
                                 circle.Transform(zDown);
                                 args.Display.DrawCircle(circle, System.Drawing.Color.Yellow, 2);
                                 circle = new Rhino.Geometry.Circle(new Rhino.Geometry.Point3d(tup.x, tup.y, branch.slice2.height), 0.5);
-                                circle.Transform(zDown);
+                                circle.Transform(zDown_eq);
                                 args.Display.DrawCircle(circle, System.Drawing.Color.Yellow, 2);
                             }
                         }

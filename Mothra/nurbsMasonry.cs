@@ -15,7 +15,8 @@ namespace mikity.ghComponents
 {
     public partial class Mothra4 : Grasshopper.Kernel.GH_Component
     {
-        public Func<double, double, double, double, double> quadFunc = (xi, xj, yi, yj) => { return Math.Sqrt(((xj - xi) * (xj - xi)) + ((yj - yi) * (yj - yi)) + 1d); };
+        public static double globalC = 1d;
+        public Func<double, double, double, double, double> quadFunc = (xi, xj, yi, yj) => { return Math.Sqrt(((xj - xi) * (xj - xi)) + ((yj - yi) * (yj - yi)) + globalC); };
         public double[] globalCoeff = null;
         public Func<double,double,double>globalFunc=null;
         public List<Rhino.Geometry.Point3d> targetSrf = new List<Point3d>();
@@ -293,6 +294,7 @@ namespace mikity.ghComponents
             pManager.AddCurveParameter("listCurve", "lstCrv", "list of curves", Grasshopper.Kernel.GH_ParamAccess.list);
             pManager.AddTextParameter("listType", "lstCrvType", "list of types of edge curves", Grasshopper.Kernel.GH_ParamAccess.list);
             pManager.AddPointParameter("pnts", "lstPnts", "list of points to compose target surface", Grasshopper.Kernel.GH_ParamAccess.list);
+            pManager.AddNumberParameter("C", "C", "parameter for multiquadric surface", Grasshopper.Kernel.GH_ParamAccess.item);
         }
         protected override void RegisterOutputParams(Grasshopper.Kernel.GH_Component.GH_OutputParamManager pManager)
         {
@@ -577,6 +579,7 @@ namespace mikity.ghComponents
             if (!DA.GetDataList(1, _listCrv)) { return; }
             if (!DA.GetDataList(2, crvTypes)) { return; }
             if (!DA.GetDataList(3, listPnt)) { listPnt.Clear(); }
+            if (!DA.GetData(4, ref globalC)) { return; }
 
             if (_listCrv.Count != crvTypes.Count) { AddRuntimeMessage(Grasshopper.Kernel.GH_RuntimeMessageLevel.Error, "need types for curves"); return; }
 

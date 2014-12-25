@@ -740,6 +740,7 @@ namespace mikity.ghComponents
                     for (int i = 0; i < leaf.r; i++)
                     {
                         bkx[i + (leaf.nU * leaf.nV) + 4 * leaf.r + leaf.varOffset] = mosek.boundkey.fx;
+                        //reference multiquadric surface
                         blx[i + (leaf.nU * leaf.nV) + 4 * leaf.r + leaf.varOffset] = globalFunc(leaf.tuples[i].x, leaf.tuples[i].y);
                         bux[i + (leaf.nU * leaf.nV) + 4 * leaf.r + leaf.varOffset] = globalFunc(leaf.tuples[i].x, leaf.tuples[i].y);
                     }
@@ -760,15 +761,15 @@ namespace mikity.ghComponents
                     {
                         {
                             bkx[i + branch.varOffset] = mosek.boundkey.fr;
-                            blx[i + branch.varOffset] = 0;// 10d;// -infinity;
-                            bux[i + branch.varOffset] = 0;// 10d;// infinity;
+                            blx[i + branch.varOffset] = 0;
+                            bux[i + branch.varOffset] = 0;
                         }
                     }
                     //kink angle parameter
                     for (int i = 0; i < branch.tuples.Count(); i++)
                     {
-                        bkx[branch.N + i + branch.varOffset] = mosek.boundkey.lo;//may be lo
-                        blx[branch.N + i + branch.varOffset] = 0.0; //0.3
+                        bkx[branch.N + i + branch.varOffset] = mosek.boundkey.lo;
+                        blx[branch.N + i + branch.varOffset] = 0.0;
                         bux[branch.N + i + branch.varOffset] = 0;
                     }
                 }
@@ -784,8 +785,8 @@ namespace mikity.ghComponents
                     for (int i = 0; i < branch.tuples.Count(); i++)
                     {
                         bkx[branch.N + i + branch.varOffset] = mosek.boundkey.fx;
-                        blx[branch.N + i + branch.varOffset] = 0;// branch.tuples[i].target.valDc;
-                        bux[branch.N + i + branch.varOffset] = 0;// branch.tuples[i].target.valDc;
+                        blx[branch.N + i + branch.varOffset] = 0;
+                        bux[branch.N + i + branch.varOffset] = 0;
                     }
                 }
                 else if (branch.branchType == branch.type.kink)
@@ -800,7 +801,7 @@ namespace mikity.ghComponents
                     for (int i = 0; i < branch.tuples.Count(); i++)
                     {
                         bkx[branch.N + i + branch.varOffset] = mosek.boundkey.lo;
-                        blx[branch.N + i + branch.varOffset] = 0.0; //0.1
+                        blx[branch.N + i + branch.varOffset] = 0.0;
                         bux[branch.N + i + branch.varOffset] = 0;
                     }
                 }
@@ -854,6 +855,9 @@ namespace mikity.ghComponents
                 bkx[numvar - 1] = mosek.boundkey.fx;
                 blx[numvar - 1] = allow;
                 bux[numvar - 1] = allow;
+                /*bkx[numvar - 1] = mosek.boundkey.fr;
+                blx[numvar - 1] = -infinity;
+                bux[numvar - 1] = infinity;*/
             }
 
             // Make mosek environment.
@@ -873,19 +877,11 @@ namespace mikity.ghComponents
                     /* Append 'numvar' variables.
                        The variables will initially be fixed at zero (x=0). */
                     task.appendvars(numvar);
-                    //System.IO.StreamWriter writer =new System.IO.StreamWriter(@"C:\out\log.log", true);
 
                     for (int j = 0; j < numvar; ++j)
                     {
-                        /* Set the linear term c_j in the objective.*/
-                        //task.putcj(j, 1);
-                        /* Set the bounds on variable j.
-                               blx[j] <= x_j <= bux[j] */
                         task.putvarbound(j, bkx[j], blx[j], bux[j]);
-                    //    writer.WriteLine("{0}\n", j);
                     }
-                    //writer.Close();
-                    //task.putqobjij
                     double root2 = Math.Sqrt(2);
                     foreach (var leaf in listLeaf)
                     {
@@ -1010,17 +1006,6 @@ namespace mikity.ghComponents
                     {
                         //task.putcj(numvar - 1, 1);
                     }
-                    /*
-                    if (obj)
-                    {
-                        foreach (var leaf in _listLeaf)
-                        {
-                            for (int i = 0; i < leaf.tuples.Count(); i++)
-                            {
-                                task.putcj(i + (leaf.nU * leaf.nV)  + 3 * leaf.r + leaf.varOffset,1);
-                            }
-                        }
-                    }*/
                     foreach (var branch in _listBranch)
                     {
                         if (branch.branchType == branch.type.kink)
@@ -1057,7 +1042,7 @@ namespace mikity.ghComponents
                     task.putintparam(mosek.iparam.intpnt_max_iterations, 200000);
                     task.putintparam(mosek.iparam.intpnt_solve_form, mosek.solveform.dual);
                     task.putobjsense(mosek.objsense.minimize);
-                    task.writedata("c:/out/mosek_task_dump.opf");
+                    //task.writedata("c:/out/mosek_task_dump.opf");
                     
 
 
@@ -1201,30 +1186,6 @@ namespace mikity.ghComponents
                             }
                         }
                     }
-                    //generate cutting plane
-                    foreach (var slice in _listSlice)
-                    {
-                        //judge if curves are closed or open.
-                        //if curves are closed, create a square that is bigger than the curves
-                        //if curves are open create a square that is a bit smaller than the curves.
-                        /* *
-                            def SplitSurfaceWithCurves(srf, crvs): #this is a SplitSurfaceWithCurves implementation
-                                brepObj=rg.Brep.CreateFromSurface(srf)
-                                face = brepObj.Faces[0]
-                                splitted = Rhino.Geometry.BrepFace.Split(face,
-                                    crvs,
-                                    0.1) # increast the tolerance to make this faster
-                                ret=list()
-                                for face in splitted.Faces:
-                                    ret.append(face.DuplicateFace(False))
-                                return ret
-
-                            b=rg.NurbsSurface.CreateFromCorners(rg.Point3d(-1,-1,0),rg.Point3d(1,-1,0),rg.Point3d(1,1,0),rg.Point3d(-1,1,0))
-                            a=SplitSurfaceWithCurves(b,x)
-                            print type(a[0])
-                         * */
-                    }
-                    ExpirePreview(true);
                 }
             }
         }
