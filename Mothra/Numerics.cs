@@ -1013,6 +1013,10 @@ namespace mikity.ghComponents
                             tieBranchD1(branch, branch.left, task, 2, 0);
                             tieBranchD1(branch, branch.right, task, 2, 1);
                             defineKinkAngle2(branch,branch.left,branch.right,task, branch.conOffset + branch.N*2, branch.varOffset + branch.N);
+                            /*for (int i = 0; i < branch.tuples.Count(); i++)
+                            {
+                                task.putcj(branch.N + i + branch.varOffset, 1);
+                            }*/
                         }
                         else if (branch.branchType == branch.type.reinforce || branch.branchType == branch.type.open)
                         {
