@@ -206,6 +206,10 @@ Copy  "$(TargetDir)merge\Mothra4.gha"  "c:\users\$(Username)\AppData\Roaming\Gra
 Copy  "$(TargetDir)merge\*.dll"  "c:\users\$(Username)\AppData\Roaming\Grasshopper\Libraries\
 </PostBuildEvent>
   </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>Copy "$(TargetDir)"\..\DLL\*.dll "$(TargetDir)"
+mkdir "$(TargetDir)"\merge</PreBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
