@@ -51,16 +51,16 @@ namespace mikity.ghComponents
                 switch (branch.branchType)
                 {
                     case Mothra4.branch.type.fix:
-                        args.Display.DrawCurve(branch.crv, System.Drawing.Color.Brown, 2);
+                        args.Display.DrawCurve(branch.crv, System.Drawing.Color.Orange, 3);
                         break;
                     case Mothra4.branch.type.reinforce:
-                        args.Display.DrawCurve(branch.crv, System.Drawing.Color.Pink, 2);
+                        args.Display.DrawCurve(branch.crv, System.Drawing.Color.Cyan, 3);
                         break;
                     case Mothra4.branch.type.kink:
-                        args.Display.DrawCurve(branch.crv, System.Drawing.Color.Purple, 2);
+                        args.Display.DrawCurve(branch.crv, System.Drawing.Color.Purple, 3);
                         break;
                     case Mothra4.branch.type.open:
-                        args.Display.DrawCurve(branch.crv, System.Drawing.Color.Green, 2);
+                        args.Display.DrawCurve(branch.crv, System.Drawing.Color.Green, 3);
                         break;
                 }
             }
@@ -114,7 +114,7 @@ namespace mikity.ghComponents
             {
                 if (branch.shellCrv != null)
                 {
-                    if (branch.branchType == branch.type.kink || branch.branchType == branch.type.reinforce)
+                    if (branch.branchType == branch.type.kink || branch.branchType == branch.type.reinforce || branch.branchType == branch.type.open)
                     {
 
                         var crv = branch.shellCrv.Duplicate() as Rhino.Geometry.NurbsCurve;

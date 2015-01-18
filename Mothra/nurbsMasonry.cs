@@ -138,6 +138,8 @@ namespace mikity.ghComponents
         }
         public class branch
         {
+            //public bool obj = false;
+            public double lb = 0.0d;
             public NurbsCurve crv;
             public NurbsCurve airyCrv;
             public NurbsCurve shellCrv;
@@ -514,9 +516,9 @@ namespace mikity.ghComponents
             }
             //call mosek
             if(listPnt.Count>0)
-                mosek1(listLeaf, listBranch, listSlice, true, myControlBox.allow);
+                mosek1(listLeaf, listBranch, listSlice, true, myControlBox.allow,myControlBox.objective);
             else
-                mosek1(listLeaf, listBranch, listSlice, false, myControlBox.allow);
+                mosek1(listLeaf, listBranch, listSlice, false, myControlBox.allow,myControlBox.objective);
             hodgeStar(listLeaf, listBranch, listNode, myControlBox.coeff, myControlBox.sScale);
             ready = true;
             this.ExpirePreview(true);
@@ -618,9 +620,19 @@ namespace mikity.ghComponents
                         branch.slice.lB.Add(branch);
                     }
                 }
-                else if(crvTypes[i]== "kink")
+                else if(crvTypes[i].StartsWith("kink"))
                 {
                     branch.branchType = branch.type.kink;
+                    var key = crvTypes[i].Replace("kink", "");
+                    double lb=0.0d;
+                    double _lb;
+                    bool res = double.TryParse(key, out _lb);
+                    if (res) lb = _lb; else lb = 0.0d;
+                    branch.lb = lb;
+                    //int NN;
+                    //res = int.TryParse(key, out NN);
+                    //if (res) { if (NN == 123) { branch.obj = true; } }
+                        
                 }else if(crvTypes[i].StartsWith("open"))
                 {
                     branch.branchType = branch.type.open;
@@ -638,26 +650,6 @@ namespace mikity.ghComponents
                         branch.slice = listSlice[key];
                         branch.slice.sliceType = slice.type.fr;
                         branch.slice.lB.Add(branch);
-                        /*
-                        var slider = myControlBox.addSliderRot(0, 1, 100, 40, (flag) => { if (flag) { branch.slice.sliceType = slice.type.fx; } else { branch.slice.sliceType = slice.type.fr; } });
-                        slider.Converter = (val, sign) =>
-                        {
-                            var O = (branch.crv.Points[0].Location + branch.crv.Points[branch.N - 1].Location) / 2;
-                            var V = (branch.crv.Points[1].Location - branch.crv.Points[0].Location);
-                            var X = branch.crv.Points[branch.N - 1].Location;
-                            var Z = new Vector3d(0, 0, 1);
-                            var W = Vector3d.CrossProduct(Z, X - O);
-                            if (V * W < 0) W.Reverse();
-                            Z.Unitize();
-                            W.Unitize();
-                            var theta = val / 100d * Math.PI / 2d;
-                            if (sign == true) theta = -theta;
-                            var Y = O + Z * Math.Cos(theta) + W * Math.Sin(theta);
-                            var plnew = new Plane(O, X, Y);
-                            branch.slice.update(plnew);
-                            this.ExpirePreview(true);
-                            return theta;
-                        };*/
                     }
                 }else if(crvTypes[i].StartsWith("fix"))
                 {
@@ -746,19 +738,6 @@ namespace mikity.ghComponents
                     newNode.z = Q.Z;
                 }
             }
-            /*foreach (var P in _listPnt)
-            {
-                foreach (var node in listNode)
-                {
-                    if(node.compare(P))
-                    {
-                        node.nodeType = node.type.fx;
-                        var text = pntHeights[_listPnt.IndexOf(P)];
-                        double height=double.Parse(text);
-                        node.airyHeight = height;
-                    }
-                }
-            }*/
             for(int i=0;i<_listSrf.Count;i++)
             {
                 var srf = _listSrf[i];

@@ -507,7 +507,7 @@ namespace mikity.ghComponents
                     }
                     foreach (var branch in _listBranch)
                     {
-                        if (branch.branchType != branch.type.open)
+                        //if (branch.branchType != branch.type.open)
                         {
                             foreach (var tup in branch.tuples)
                             {
@@ -642,7 +642,7 @@ namespace mikity.ghComponents
                 }
             }
         }
-        public void mosek1(List<leaf> _listLeaf,List<branch> _listBranch,Dictionary<string,slice> _listSlice,/*List<node> _listNode,*/ bool obj,double allow)
+        public void mosek1(List<leaf> _listLeaf,List<branch> _listBranch,Dictionary<string,slice> _listSlice,/*List<node> _listNode,*/ bool obj,double allow,bool obj2)
         {
             // Since the value infinity is never used, we define
             // 'infinity' symbolic purposes only
@@ -759,11 +759,9 @@ namespace mikity.ghComponents
                 {
                     for (int i = 0; i < branch.N; i++)
                     {
-                        {
-                            bkx[i + branch.varOffset] = mosek.boundkey.fr;
-                            blx[i + branch.varOffset] = 0;
-                            bux[i + branch.varOffset] = 0;
-                        }
+                        bkx[i + branch.varOffset] = mosek.boundkey.fr;
+                        blx[i + branch.varOffset] = 0;
+                        bux[i + branch.varOffset] = 0;
                     }
                     //kink angle parameter
                     for (int i = 0; i < branch.tuples.Count(); i++)
@@ -801,7 +799,7 @@ namespace mikity.ghComponents
                     for (int i = 0; i < branch.tuples.Count(); i++)
                     {
                         bkx[branch.N + i + branch.varOffset] = mosek.boundkey.lo;
-                        blx[branch.N + i + branch.varOffset] = 0.0;
+                        blx[branch.N + i + branch.varOffset] = branch.lb;
                         bux[branch.N + i + branch.varOffset] = 0;
                     }
                 }
@@ -951,20 +949,24 @@ namespace mikity.ghComponents
                         }
                         
                         //if (leaf.leafType == leaf.type.convex)
+                        for (int i = 0; i < leaf.r; i++)
                         {
-                            for (int i = 0; i < leaf.r; i++)
-                            {
-                                int N11 = i * 3 + (leaf.nU * leaf.nV); //variable number
-                                int N22 = i * 3 + 1 + (leaf.nU * leaf.nV);
-                                int N12 = i * 3 + 2 + (leaf.nU * leaf.nV);
+                            int N11 = i * 3 + (leaf.nU * leaf.nV); //variable number
+                            int N22 = i * 3 + 1 + (leaf.nU * leaf.nV);
+                            int N12 = i * 3 + 2 + (leaf.nU * leaf.nV);
 
-                                csub[0] = N11 + leaf.varOffset;
-                                csub[1] = N22 + leaf.varOffset;
-                                csub[2] = N12 + leaf.varOffset;
-                                task.appendcone(mosek.conetype.rquad,
-                                                0.0, // For future use only, can be set to 0.0 
-                                                csub);
-                            }
+                            csub[0] = N11 + leaf.varOffset;
+                            csub[1] = N22 + leaf.varOffset;
+                            csub[2] = N12 + leaf.varOffset;
+                            task.appendcone(mosek.conetype.rquad,
+                                            0.0, // For future use only, can be set to 0.0 
+                                            csub);
+                            /*if (obj2)
+                            {
+                                task.putcj(N11, leaf.tuples[i].Gij[0, 0]);
+                                task.putcj(N22, leaf.tuples[i].Gij[1, 1]);
+                                task.putcj(N12, 2*leaf.tuples[i].Gij[0, 1]);
+                            }*/
                         }
                         if (obj)
                         {
@@ -1002,10 +1004,6 @@ namespace mikity.ghComponents
                         }
                         task.appendcone(mosek.conetype.quad, 0.0, dsub.ToArray());
                     }
-                    if (obj)
-                    {
-                        //task.putcj(numvar - 1, 1);
-                    }
                     foreach (var branch in _listBranch)
                     {
                         if (branch.branchType == branch.type.kink)
@@ -1013,9 +1011,12 @@ namespace mikity.ghComponents
                             tieBranchD1(branch, branch.left, task, 2, 0);
                             tieBranchD1(branch, branch.right, task, 2, 1);
                             defineKinkAngle2(branch,branch.left,branch.right,task, branch.conOffset + branch.N*2, branch.varOffset + branch.N);
-                            /*for (int i = 0; i < branch.tuples.Count(); i++)
+                            /*if (branch.obj)
                             {
-                                task.putcj(branch.N + i + branch.varOffset, 1);
+                                for (int i = 0; i < branch.tuples.Count(); i++)
+                                {
+                                    task.putcj(branch.N + i + branch.varOffset, 1);
+                                }
                             }*/
                         }
                         else if (branch.branchType == branch.type.reinforce || branch.branchType == branch.type.open)
@@ -1043,7 +1044,7 @@ namespace mikity.ghComponents
                             defineKinkAngle(branch,branch.target, task, branch.conOffset + branch.N, branch.varOffset + branch.N);
                         }
                     }
-                    task.putintparam(mosek.iparam.intpnt_max_iterations, 200000);
+                    task.putintparam(mosek.iparam.intpnt_max_iterations, 200000000);//20000000
                     task.putintparam(mosek.iparam.intpnt_solve_form, mosek.solveform.dual);
                     task.putobjsense(mosek.objsense.minimize);
                     //task.writedata("c:/out/mosek_task_dump.opf");
@@ -1204,7 +1205,7 @@ namespace mikity.ghComponents
                     branch.tuples[i].SPK[0, 0] = branch.tuples[i].H[0, 0] * val*sScale;
                     if (branch.tuples[i].SPK[0, 0] <= 0)
                     {
-                        branch.tuples[i].SPK[0, 0] = 0.000001;
+                        branch.tuples[i].SPK[0, 0] = 0.00000000000001d;//E-14
                     }
 
                 }
@@ -1216,17 +1217,17 @@ namespace mikity.ghComponents
                     //Hodge star
                     double g = leaf.tuples[j].refDv * leaf.tuples[j].refDv;
 
-                    leaf.tuples[j].SPK[0, 0] = leaf.tuples[j].H[1, 1] / g;//xx[N22 + leaf.varOffset] / g * root2;
-                    leaf.tuples[j].SPK[1, 1] = leaf.tuples[j].H[0, 0] / g;//xx[N11 + leaf.varOffset] / g * root2;
-                    leaf.tuples[j].SPK[0, 1] = -leaf.tuples[j].H[0, 1] / g;//-xx[N12 + leaf.varOffset] / g;
-                    leaf.tuples[j].SPK[1, 0] = -leaf.tuples[j].H[1, 0] / g;//-xx[N12 + leaf.varOffset] / g;
+                    leaf.tuples[j].SPK[0, 0] = leaf.tuples[j].H[1, 1] / g;
+                    leaf.tuples[j].SPK[1, 1] = leaf.tuples[j].H[0, 0] / g;
+                    leaf.tuples[j].SPK[0, 1] = -leaf.tuples[j].H[0, 1] / g;
+                    leaf.tuples[j].SPK[1, 0] = -leaf.tuples[j].H[1, 0] / g;
                     leaf.tuples[j].computeEigenVectors();
                     var tup = leaf.tuples[j];
                     var det = tup.SPK[0, 0] * tup.SPK[1, 1] - tup.SPK[0, 1] * tup.SPK[1, 0];
                     if (tup.eigenValues[0] < 0 || tup.eigenValues[1] < 0)
                     {
-                        if (tup.eigenValues[0] < 0) tup.eigenValues[0] = 0.000001;
-                        if (tup.eigenValues[1] < 0) tup.eigenValues[1] = 0.000001;
+                        if (tup.eigenValues[0] < 0) tup.eigenValues[0] = 0.00000000000001d;//E-14
+                        if (tup.eigenValues[1] < 0) tup.eigenValues[1] = 0.00000000000001d;//E-14
                         //P
                         double A11 = tup.eigenVectorsB[0][0];
                         double A12 = tup.eigenVectorsB[0][1];
